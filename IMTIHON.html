@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Imtihon Testi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="quiz-container">
+        <div id="start-screen" class="screen">
+            <h1>JavaScript Imtihonoldi Testi</h1>
+            <p>Konspekt asosida tayyorlangan shaffof test tizimi. O'z bilimingizni sinab ko'ring!</p>
+            <button id="start-btn">Testni Boshlash</button>
+        </div>
+
+        <div id="quiz-screen" class="screen hide">
+            <div class="quiz-header">
+                <span id="progress">Savol: 1/12</span>
+                <div class="progress-bar"><div id="progress-fill"></div></div>
+            </div>
+            <h2 id="question-text">Savol matni shu yerda chiqadi</h2>
+            <div id="options-container" class="options-grid">
+                </div>
+            <button id="next-btn" class="hide">Keyingi savol</button>
+        </div>
+
+        <div id="result-screen" class="screen hide">
+            <h2>Test Yakunlandi!</h2>
+            <div class="score-box">
+                Natijangiz: <span id="score">0</span> / <span id="total-questions">12</span>
+            </div>
+            <p id="score-comment">Sizning darajangiz...</p>
+            
+            <h3>Batafsil tahlil:</h3>
+            <div id="review-container">
+                </div>
+            <button id="restart-btn">Qaytadan urinish</button>
+        </div>
+    </div>
+<script>
+// Konspektdan olingan ma'lumotlar asosida savollar massivi
+const quizData = [
+    {
+        question: "Function (funksiya) nima? [cite: 1]",
+        options: [
+            "Faqat bir marta ishlaydigan va qayta ishlatib bo'lmaydigan kod bloki.",
+            "Bir vazifani har xil qiymatlar bilan bajarish [cite: 1]",
+            "Faqat brauzer ma'lumotlarini o'zgartirish uchun mo'ljallangan qoidalar to'plami."
+        ],
+        correct: 1,
+        explanation: "Funksiyaning asosiy vazifasi — muayyan bir vazifani har xil qiymatlar (argumentlar) bergan holda qayta-qayta bajarishdir[cite: 1]."
+    },
+    {
+        question: "`if else` va `switch case` operatorlarining ishlash mexanizmidagi farq nimada? [cite: 2]",
+        options: [
+            "if else to'g'ri javobni topsa ham kodni o'qishda davom etadi, switch case esa boshidan boshlab hamma ma'lumotni o'qiydi.",
+            "if else kkli javobgacha bulgan hamma malumotlardi uqiydi, swich case tug'ri javobdan oldingi malumotlardi uqimaydi [cite: 2]",
+            "Ikkalasi ham kodni bir xil tezlikda va bir xil mexanizmda o'qiydi."
+        ],
+        correct: 1,
+        explanation: "`if else` shart bajariladigan joygacha bo'lgan hamma ma'lumotlarni ketma-ket o'qiydi, `switch case` esa to'g'ri javobdan oldingi ma'lumotlarni o'qib o'tirmaydi[cite: 2]."
+    },
+    {
+        question: "Quyidagilardan qaysilari Primitive (Oddiy) ma'lumot turlariga kiradi? [cite: 4]",
+        options: [
+            "object, array, function [cite: 5]",
+            "string, number, boolean, null, undefined, bigint, symbol [cite: 4]",
+            "MAP, SET, DOM, BOM"
+        ],
+        correct: 1,
+        explanation: "JavaScript-da oddiy (primitive) turlarga string, number, boolean, null, undefined, bigint va symbol kiradi[cite: 4]. Qolganlari reference turlar hisoblanadi[cite: 5]."
+    },
+    {
+        question: "Arrow function'ning boshqa funksiyalardan asosiy farqi nimada? [cite: 2]",
+        options: [
+            "Unda asinxron amallarni umuman bajarib bo'lmaydi.",
+            "Faqat bitta qatordan iborat kodlarni yozish uchun ishlatiladi.",
+            "arrow functiondi boshqa funktionlardan farqi thissida, scopida, contextida ! [cite: 2]"
+        ],
+        correct: 2,
+        explanation: "Arrow function (o'qsimon funksiya) o'zining mustaqil `this` kontekstiga ega emas, shu sababli u scope va context jihatdan farq qiladi[cite: 2]."
+    },
+    {
+        question: "Closure (Yopilish) tushunchasiga berilgan eng to'g'ri ta'rif qaysi? [cite: 6, 24]",
+        options: [
+            "Funksiyaning ichida yangi o'zgaruvchi yaratib, uni tashqariga uzatish xususiyati.",
+            "ichki funksiyaning o'zidan tashqaridagi funksiya o'zgaruvchilarini, hatto tashqi funksiya o'z ishini tugatgandan keyin ham eslab qolishi va ularga kira olishidir [cite: 24]",
+            "Kodning nusxasini yo'q qilishda kerak bo'ladigan universal pichoq."
+        ],
+        correct: 1,
+        explanation: "Closure — bu funksiyaning o'zi tug'ilgan muhitdagi o'zgaruvchilarni 'cho'ntagiga solib', xotirada saqlab qolish qobiliyatidir[cite: 6, 24]."
+    },
+    {
+        question: "`var`, `let` va `const` o'zgaruvchilarining farqi nimada? [cite: 8]",
+        options: [
+            "var let const var function scope, let va const blo scope, var da nomdi va qiymnatni qayta elon qilish mumkin, letda qiymatni, constda esa iloji yoq [cite: 8]",
+            "var va let — block scope, const esa global scope hisoblanadi.",
+            "Hammasi global scope bo'lib, o'zgaruvchi nomlarini istalgancha qayta e'lon qilsa bo'ladi."
+        ],
+        correct: 0,
+        explanation: "`var` funksiya doirasida (`function scope`), `let` va `const` esa blok doirasida (`block scope`) ishlaydi[cite: 8]. `var`ni istalgancha qayta e'lon qilish mumkin[cite: 8]."
+    },
+    {
+        question: "Event Loop tizimida Web API qanday vazifani bajaradi? [cite: 9, 11]",
+        options: [
+            "Kodlarni bittalab bajaradi va tamom bo'lgach darhol o'chirib tashlaydi[cite: 10].",
+            "JavaScript bajara olmaydigan, vaqt talab qiladigan ishlarni (setTimeout, fetch) brauzer o'z zimmasiga oladi va fonda bajaradi [cite: 11]",
+            "Faqat sinxron ishlaydigan oshxona oshpazi kabi ishlaydi[cite: 10]."
+        ],
+        correct: 1,
+        explanation: "Web APIs — JavaScript o'zi mustaqil bajarolmaydigan asinxron ishlarni (masalan, `setTimeout`, internetdan ma'lumot yuklash) brauzer fonida bajarib beradi[cite: 11]."
+    },
+    {
+        question: "JavaScriptda `typeof null` nima qaytaradi? [cite: 15]",
+        options: [
+            "null qaytaradi, chunki u maxsus tur.",
+            "typeof null deb yozib tekshirsangiz, JavaScript sizga 'object' deb javob qaytaradi: bu 1995 yildan beri tug'irlanmaydigan xato [cite: 15]",
+            "undefined qaytaradi, chunki uning qiymati aniqlanmagan."
+        ],
+        correct: 1,
+        explanation: "Bu JavaScript tilining eng mashhur xatolaridan (bug) biri bo'lib, tarixiy sabablarga ko'ra haligacha tuzatilmagan[cite: 15]."
+    },
+    {
+        question: "String metodlari imyutable (immutable) deyilganda nima nazarda tutiladi? [cite: 16]",
+        options: [
+            "Metodlar asl matnning ichidagi harflarni butunlay o'zgartirib yuboradi.",
+            "String ustida qanday metodni ishlatmang, u baribir asl matnga tegmaydi, shunchaki yangi natija yasab beradi [cite: 16]",
+            "String metodlari faqat ma'lum bir shart bajarilgandagina ishlaydi."
+        ],
+        correct: 1,
+        explanation: "JavaScriptda satrlar o'zgarmasdir (immutable). Har qanday string metodi (trim, split, replace) asl o'zgaruvchini o'zgartirmay, yangi satr qaytaradi[cite: 16]."
+    },
+    {
+        question: "MAP va SET o'rtasidagi asosiy farq nimada? [cite: 22]",
+        options: [
+            "MAP bu key va value id class, SET bu takrorlanmas unikal qiymat [cite: 22]",
+            "MAP ob'ektlarni klonlaydi, SET esa ularni butunlay o'chirib tashlaydi.",
+            "Hech qanday farqi yo'q, ikkalasi ham bir xil tuzilmaga ega."
+        ],
+        correct: 0,
+        explanation: "MAP lug'at kabi kalit-qiymat (key-value) juftliklarini saqlaydi[cite: 22]. SET esa faqat bir-birini takrorlamaydigan unikal qiymatlar to'plamidir[cite: 22]."
+    },
+    {
+        question: "`.bind()` metodining `.call()` va `.apply()`dan asosiy farqi nimada? [cite: 29, 31]",
+        options: [
+            "U funksiyani darhol ishga tushiradi va argumentlarni massiv ko'rinishida oladi[cite: 29, 30].",
+            "U funksiyani darhol ishga tushirmaydi. Buning o'rniga, this konteksti abadiy bog'langan mutlaqo yangi funksiya nusxasini qaytaradi [cite: 31, 32]",
+            "Hech qanday farqi yo'q, uchtasi ham sinxron ishlaydi."
+        ],
+        correct: 1,
+        explanation: "`.call()` va `.apply()` funksiyani darhol ishga tushirsa [cite: 29, 33], `.bind()` esa keyinchalik xohlagan vaqtda ishga tushirish uchun yangi funksiya nusxasini beradi[cite: 31, 32]."
+    },
+    {
+        question: "Clean Code qoidalaridagi SRP prinsipi nimani anglatadi? [cite: 19]",
+        options: [
+            "Vaqtinchalik o'lik hudud (Temporal Dead Zone) ma'nosini bildiradi[cite: 18].",
+            "Kodning nusxasini yo'q qilishda foydalaniladigan qoida[cite: 20].",
+            "1 ta function bitta vazifa, kodda 'universal pichoq' yaratmasdan, har bir vazifa uchun alohida professional 'asboblar' yasash qoidasidir [cite: 19]"
+        ],
+        correct: 2,
+        explanation: "SRP (Single Responsibility Principle) — har bir funksiya yoki klass faqat bitta aniq vazifaga javobgar bo'lishi kerakligini uqtiradi[cite: 19]."
+    }
+];
+
+let currentQuestionIndex = 0;
+let score = 0;
+let userAnswers = [];
+
+// DOM elementlarni yuklab olish
+const startScreen = document.getElementById('start-screen');
+const quizScreen = document.getElementById('quiz-screen');
+const resultScreen = document.getElementById('result-screen');
+const startBtn = document.getElementById('start-btn');
+const nextBtn = document.getElementById('next-btn');
+const restartBtn = document.getElementById('restart-btn');
+const questionText = document.getElementById('question-text');
+const optionsContainer = document.getElementById('options-container');
+const progressText = document.getElementById('progress');
+const progressFill = document.getElementById('progress-fill');
+const scoreText = document.getElementById('score');
+const totalQuestionsText = document.getElementById('total-questions');
+const scoreComment = document.getElementById('score-comment');
+const reviewContainer = document.getElementById('review-container');
+
+// Hodisalarni tinglash
+startBtn.addEventListener('click', startQuiz);
+nextBtn.addEventListener('click', loadNextQuestion);
+restartBtn.addEventListener('click', resetQuiz);
+
+function startQuiz() {
+    startScreen.classList.add('hide');
+    quizScreen.classList.remove('hide');
+    currentQuestionIndex = 0;
+    score = 0;
+    userAnswers = [];
+    showQuestion();
+}
+
+function showQuestion() {
+    resetState();
+    let currentQuestion = quizData[currentQuestionIndex];
+    questionText.innerText = currentQuestion.question;
+    
+    // Progress yangilash
+    progressText.innerText = `Savol: ${currentQuestionIndex + 1}/${quizData.length}`;
+    progressFill.style.width = `${((currentQuestionIndex + 1) / quizData.length) * 100}%`;
+
+    // Variantlarni chiqarish
+    currentQuestion.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.innerText = option;
+        button.classList.add('option-btn');
+        button.addEventListener('click', () => selectOption(index));
+        optionsContainer.appendChild(button);
+    });
+}
+
+function resetState() {
+    nextBtn.classList.add('hide');
+    optionsContainer.innerHTML = '';
+}
+
+function selectOption(selectedIndex) {
+    const currentQuestion = quizData[currentQuestionIndex];
+    const buttons = optionsContainer.querySelectorAll('.option-btn');
+    
+    userAnswers.push(selectedIndex);
+
+    // To'g'ri yoki noto'g'riligini tekshirish
+    if (selectedIndex === currentQuestion.correct) {
+        score++;
+        buttons[selectedIndex].classList.add('correct');
+    } else {
+        buttons[selectedIndex].classList.add('wrong');
+        buttons[currentQuestion.correct].classList.add('correct'); // to'g'risini ham ko'rsatish
+    }
+
+    // Tugmalarni muzlatish (qayta bosib bo'lmasligi uchun)
+    buttons.forEach(btn => btn.disabled = true);
+
+    // Keyingi tugmasini ko'rsatish
+    nextBtn.classList.remove('hide');
+}
+
+function loadNextQuestion() {
+    currentQuestionIndex++;
+    if (currentQuestionIndex < quizData.length) {
+        showQuestion();
+    } else {
+        showResults();
+    }
+}
+
+function showResults() {
+    quizScreen.classList.add('hide');
+    resultScreen.classList.remove('hide');
+    
+    scoreText.innerText = score;
+    totalQuestionsText.innerText = quizData.length;
+
+    // Izoh qoldirish
+    if (score === quizData.length) {
+        scoreComment.innerText = "A'lo daraja! Imtihonga tayyorgarligingiz mukammal! 🔥";
+    } else if (score >= 8) {
+        scoreComment.innerText = "Yaxshi natija, lekin ba'zi terminlarni qayta ko'rib chiqishingiz kerak. 👍";
+    } else {
+        scoreComment.innerText = "Shoshilmang, konspektni diqqat bilan qaytadan o'qib chiqing. 📚";
+    }
+
+    // Batafsil tahlilni generatsiya qilish
+    reviewContainer.innerHTML = '';
+    quizData.forEach((questionObj, index) => {
+        const reviewItem = document.createElement('div');
+        reviewItem.classList.add('review-item');
+        
+        const isCorrect = userAnswers[index] === questionObj.correct;
+        
+        reviewItem.innerHTML = `
+            <h4>${index + 1}. ${questionObj.question}</h4>
+            <div style="margin: 5px 0;">
+                Sizning javobingiz: <strong style="color: ${isCorrect ? 'green' : 'red'}">${questionObj.options[userAnswers[index]]}</strong>
+                ${!isCorrect ? `<br>To'g'ri javob: <strong style="color: green">${questionObj.options[questionObj.correct]}</strong>` : ''}
+            </div>
+            <div class="explanation"><strong>Tushuntirish:</strong> ${questionObj.explanation}</div>
+        `;
+        reviewContainer.appendChild(reviewItem);
+    });
+}
+
+function resetQuiz() {
+    resultScreen.classList.add('hide');
+    startScreen.classList.remove('hide');
+}
+</script>
+<style>
+    :root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --bg: #f3f4f6;
+    --card-bg: #ffffff;
+    --text: #1f2937;
+    --success: #10b981;
+    --danger: #ef4444;
+    --border: #e5e7eb;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.quiz-container {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 650px;
+    padding: 30px;
+}
+
+.screen {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.hide {
+    display: none !important;
+}
+
+h1, h2 {
+    text-align: center;
+    color: #111827;
+}
+
+p {
+    text-align: center;
+    color: #6b7280;
+    font-size: 1.1rem;
+}
+
+button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background-color: var(--primary-hover);
+}
+
+.quiz-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#progress {
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.progress-bar {
+    background: var(--border);
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#progress-fill {
+    background: var(--primary);
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.options-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.option-btn {
+    background: var(--card-bg);
+    color: var(--text);
+    border: 2px solid var(--border);
+    text-align: left;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.option-btn:hover:not([disabled]) {
+    background: #f9fafb;
+    border-color: #d1d5db;
+}
+
+.option-btn[disabled] {
+    cursor: not-allowed;
+}
+
+.option-btn.correct {
+    background-color: #ecfdf5;
+    border-color: var(--success);
+    color: #065f46;
+}
+
+.option-btn.wrong {
+    background-color: #fef2f2;
+    border-color: var(--danger);
+    color: #991b1b;
+}
+
+#next-btn {
+    align-self: flex-end;
+}
+
+.score-box {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+#score {
+    color: var(--success);
+    font-size: 2rem;
+}
+
+.review-item {
+    background: #f9fafb;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.review-item h4 {
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+.review-item p {
+    text-align: left;
+    font-size: 0.95rem;
+    margin-top: 5px;
+}
+
+.explanation {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 8px 12px;
+    color: #1e3a8a;
+    border-radius: 0 4px 4px 0;
+}
+</style>
+</body>
+</html>
